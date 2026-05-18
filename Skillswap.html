@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillSwap Hub — Exchange Skills, Not Money</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+<!-- =============================================
+     SKILLSWAP HUB — Full Single-File Project
+     Built with: HTML + CSS + JS + Firebase
+     
+     SETUP INSTRUCTIONS:
+     1. Go to https://console.firebase.google.com
+     2. Create a new project
+     3. Enable Firestore Database (test mode)
+     4. Enable Authentication → Google Sign-in
+     5. Register a Web App and copy your config
+     6. Replace the firebaseConfig below with yours
+     ============================================= -->
+
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --brand: #1D9E75;
+  --brand-dark: #0F6E56;
+  --brand-deeper: #085041;
+  --brand-light: #E1F5EE;
+  --brand-mid: #9FE1CB;
+  --accent: #D85A30;
+  --accent-light: #FAECE7;
+  --accent-dark: #993C1D;
+  --amber: #EF9F27;
+  --purple-light: #EEEDFE;
+  --purple-dark: #3C3489;
+  --blue-light: #E6F1FB;
+  --blue-dark: #0C447C;
+
+  --bg: #ffffff;
+  --bg2: #f9f8f4;
+  --bg3: #f1efe8;
+  --text: #1a1a18;
+  --text2: #5f5e5a;
+  --text3: #888780;
+  --border: rgba(0,0,0,0.1);
+  --border2: rgba(0,0,0,0.18);
+  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 24px rgba(0,0,0,0.1);
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg2);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--brand-mid); border-radius: 10px; }
+
+/* ===== LOADER ===== */
+#app-loader {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 9999; transition: opacity 0.4s;
+}
+#app-loader .logo-big {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem; color: var(--brand-dark);
+}
+#app-loader .logo-big span { color: var(--accent); }
+#app-loader .loader-bar {
+  width: 160px; height: 3px; background: var(--bg3);
+  border-radius: 10px; margin-top: 1.5rem; overflow: hidden;
+}
+#app-loader .loader-fill {
+  height: 100%; width: 0; background: var(--brand);
+  border-radius: 10px; animation: fill 1.5s ease forwards;
+}
+@keyframes fill { to { width: 100%; } }
+
+/* ===== LAYOUT ===== */
+#app { display: none; min-height: 100vh; }
+
+/* ===== NAVBAR ===== */
+.navbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 2rem; height: 60px;
+  gap: 1.5rem;
+}
+.nav-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem; color: var(--brand-dark);
+  text-decoration: none; letter-spacing: -0.5px;
+}
+.nav-logo span { color: var(--accent); }
+.nav-links { display: flex; gap: 0.25rem; margin-left: 1rem; }
+.nav-link {
+  font-size: 13px; font-weight: 500; color: var(--text2);
+  padding: 6px 12px; border-radius: var(--radius);
+  cursor: pointer; border: none; background: transparent;
+  font-family: 'DM Sans', sans-serif;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-link:hover { background: var(--bg2); color: var(--text); }
+.nav-link.active { background: var(--brand-light); color: var(--brand-dark); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.nav-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--brand-light); color: var(--brand-dark);
+  font-size: 12px; font-weight: 600; display: flex;
+  align-items: center; justify-content: center; cursor: pointer;
+  border: 2px solid var(--brand-mid); position: relative;
+}
+.nav-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.dropdown {
+  display: none; position: absolute; top: calc(100% + 8px); right: 0;
+  background: var(--bg); border: 1px solid var(--border2);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
+  min-width: 180px; padding: 6px; z-index: 200;
+}
+.dropdown.open { display: block; }
+.dropdown-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: var(--radius);
+  font-size: 13px; cursor: pointer; color: var(--text);
+  transition: background 0.12s;
+}
+.dropdown-item:hover { background: var(--bg2); }
+.dropdown-item.danger { color: var(--accent-dark); }
+.dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+/* ===== BUTTONS ===== */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 18px; border-radius: var(--radius);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  border: none; font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s; text-decoration: none;
+}
+.btn-primary { background: var(--brand-dark); color: #fff; }
+.btn-primary:hover { background: var(--brand-deeper); }
+.btn-outline { background: transparent; color: var(--brand-dark); border: 1px solid var(--brand-dark); }
+.btn-outline:hover { background: var(--brand-light); }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
+.btn-ghost:hover { background: var(--bg2); color: var(--text); }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-accent:hover { background: var(--accent-dark); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-lg { padding: 12px 28px; font-size: 15px; }
+
+/* ===== AUTH SCREEN ===== */
+#auth-screen {
+  min-height: 100vh; background: var(--brand-light);
+  display: flex; align-items: center; justify-content: center;
+  padding: 2rem;
+}
+.auth-card {
+  background: var(--bg); border-radius: var(--radius-xl);
+  padding: 3rem 2.5rem; max-width: 420px; width: 100%;
+  box-shadow: var(--shadow-md); text-align: center;
+}
+.auth-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem; color: var(--brand-dark); margin-bottom: 0.5rem;
+}
+.auth-logo span { color: var(--accent); }
+.auth-tagline { font-size: 14px; color: var(--text2); margin-bottom: 2rem; line-height: 1.5; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 1.5rem 0; }
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border2);
+}
+.auth-divider span { font-size: 12px; color: var(--text3); }
+.google-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center;
+  gap: 10px; padding: 12px; border-radius: var(--radius);
+  border: 1.5px solid var(--border2); background: var(--bg);
+  font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: background 0.15s;
+}
+.google-btn:hover { background: var(--bg2); }
+.google-icon { width: 18px; height: 18px; }
+.feature-pills { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 1.5rem; }
+.feature-pill {
+  font-size: 11px; padding: 4px 10px; border-radius: 20px;
+  background: var(--brand-light); color: var(--brand-dark); font-weight: 500;
+}
+
+/* ===== PAGES ===== */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ===== HERO ===== */
+.hero {
+  background: linear-gradient(135deg, var(--brand-deeper) 0%, var(--brand-dark) 60%, var(--brand) 100%);
+  color: #fff; padding: 4rem 2rem 5rem; text-align: center; position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+.hero-content { position: relative; max-width: 640px; margin: 0 auto; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 1.5rem;
+}
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.15; margin-bottom: 1rem;
+}
+.hero h1 em { font-style: normal; color: #9FE1CB; }
+.hero p { font-size: 16px; opacity: 0.85; max-width: 480px; margin: 0 auto 2rem; }
+.hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.hero-stats {
+  display: flex; gap: 2rem; justify-content: center;
+  margin-top: 3rem; flex-wrap: wrap;
+}
+.hero-stat { text-align: center; }
+.hero-stat-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem; display: block; color: #9FE1CB;
+}
+.hero-stat-label { font-size: 12px; opacity: 0.7; }
+
+/* ===== SKILL CARDS GRID ===== */
+.page-container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.5rem; flex-wrap: gap;
+}
+.page-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem; color: var(--brand-deep);
+}
+.filters {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.5rem;
+}
+.filter-btn {
+  font-size: 12px; font-weight: 500; padding: 6px 14px;
+  border-radius: 20px; border: 1px solid var(--border2);
+  background: var(--bg); cursor: pointer; color: var(--text2);
+  font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+}
+.filter-btn.active, .filter-btn:hover {
+  background: var(--brand-dark); color: #fff; border-color: var(--brand-dark);
+}
+.search-bar {
+  display: flex; gap: 10px; margin-bottom: 1.5rem;
+}
+.search-input {
+  flex: 1; padding: 10px 16px; border-radius: var(--radius);
+  border: 1px solid var(--border2); background: var(--bg);
+  font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--text);
+  outline: none; transition: border-color 0.15s;
+}
+.search-input:focus { border-color: var(--brand); }
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.skill-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1.25rem;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+  cursor: pointer;
+}
+.skill-card:hover {
+  box-shadow: var(--shadow-md); transform: translateY(-2px);
+  border-color: var(--brand-mid);
+}
+.card-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 1rem; }
+.avatar {
+  width: 46px; height: 46px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600; flex-shrink: 0;
+}
+.avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.card-info { flex: 1; }
+.card-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+.card-role { font-size: 12px; color: var(--text2); }
+.card-location { font-size: 12px; color: var(--text3); display: flex; align-items: center; gap: 3px; }
+.card-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+.badge {
+  font-size: 11px; font-weight: 500; padding: 3px 10px;
+  border-radius: 20px;
+}
+.badge-offer { background: var(--brand-light); color: var(--brand-deeper); }
+.badge-want { background: var(--accent-light); color: var(--accent-dark); }
+.badge-new { background: var(--purple-light); color: var(--purple-dark); }
+.card-skill-section { margin-bottom: 1rem; }
+.skill-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text3); margin-bottom: 6px;
+}
+.skill-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.skill-tag {
+  font-size: 12px; padding: 4px 10px; border-radius: 20px;
+  background: var(--bg2); border: 1px solid var(--border);
+  color: var(--text2);
+}
+.skill-tag.highlight { background: var(--brand-light); color: var(--brand-dark); border-color: var(--brand-mid); }
+.card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 1rem; border-top: 1px solid var(--border);
+  margin-top: 0.5rem;
+}
+.card-rating { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+.star { color: var(--amber); }
+.card-swaps { font-size: 12px; color: var(--text3); margin-left: 4px; }
+.card-actions { display: flex; gap: 6px; }
+
+/* ===== POST SKILL FORM ===== */
+.form-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); padding: 2rem; max-width: 700px; margin: 0 auto;
+}
+.form-section-title {
+  font-size: 13px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text3); margin: 1.5rem 0 0.75rem;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.form-section-title:first-of-type { margin-top: 0; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 13px; font-weight: 500; color: var(--text2); }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 14px; border-radius: var(--radius);
+  border: 1px solid var(--border2); background: var(--bg);
+  font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--text);
+  outline: none; transition: border-color 0.15s;
+  width: 100%;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(29,158,117,0.1); }
+.form-group textarea { resize: vertical; min-height: 100px; }
+.form-group .hint { font-size: 11px; color: var(--text3); }
+.tag-input-wrap { position: relative; }
+.tag-container {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 8px 12px; border-radius: var(--radius);
+  border: 1px solid var(--border2); background: var(--bg);
+  min-height: 44px; cursor: text; transition: border-color 0.15s;
+}
+.tag-container:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(29,158,117,0.1); }
+.tag-container input {
+  border: none !important; padding: 0 !important; box-shadow: none !important;
+  flex: 1; min-width: 120px; font-size: 13px;
+}
+.tag-pill {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--brand-light); color: var(--brand-dark);
+  border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 500;
+}
+.tag-pill button {
+  border: none; background: none; cursor: pointer;
+  color: var(--brand-dark); font-size: 14px; line-height: 1;
+  padding: 0 0 0 2px;
+}
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem; }
+
+/* ===== TOAST ===== */
+#toast-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 9000; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  background: var(--brand-deeper); color: #fff;
+  padding: 12px 20px; border-radius: var(--radius);
+  font-size: 14px; display: flex; align-items: center; gap: 8px;
+  box-shadow: var(--shadow-md); animation: slideUp 0.3s ease;
+  max-width: 320px;
+}
+.toast.error { background: var(--accent-dark); }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45); z-index: 500;
+  align-items: center; justify-content: center; padding: 1rem;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg); border-radius: var(--radius-xl);
+  max-width: 560px; width: 100%; padding: 2rem;
+  box-shadow: var(--shadow-md); position: relative;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-close {
+  position: absolute; top: 1rem; right: 1rem;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: none; background: var(--bg2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text2); font-size: 16px; transition: background 0.15s;
+}
+.modal-close:hover { background: var(--bg3); }
+.modal-profile-head {
+  display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+}
+.modal-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700; flex-shrink: 0;
+}
+.modal-name { font-size: 1.2rem; font-weight: 600; margin-bottom: 2px; }
+.modal-role { font-size: 13px; color: var(--text2); }
+.modal-section { margin-bottom: 1.25rem; }
+.modal-section h4 {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text3); margin-bottom: 8px;
+}
+.modal-bio { font-size: 14px; color: var(--text2); line-height: 1.7; }
+.modal-footer { display: flex; gap: 10px; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+
+/* ===== HOW IT WORKS PAGE ===== */
+.how-hero {
+  background: var(--bg); border-bottom: 1px solid var(--border);
+  padding: 3rem 2rem; text-align: center;
+}
+.how-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem; color: var(--brand-dark); margin-bottom: 0.75rem;
+}
+.steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 2rem; }
+.step-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1.5rem; text-align: center;
+}
+.step-icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--brand-light); color: var(--brand-dark);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin: 0 auto 1rem;
+}
+.step-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem; color: var(--brand-mid); display: block; margin-bottom: 0.5rem;
+}
+.step-title { font-size: 15px; font-weight: 600; margin-bottom: 0.5rem; }
+.step-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.faq-section { max-width: 700px; margin: 2rem auto 0; }
+.faq-item {
+  border-bottom: 1px solid var(--border); padding: 1rem 0; cursor: pointer;
+}
+.faq-q { display: flex; justify-content: space-between; align-items: center; font-weight: 500; font-size: 14px; }
+.faq-a { font-size: 13px; color: var(--text2); line-height: 1.7; display: none; padding-top: 0.75rem; }
+.faq-item.open .faq-a { display: block; }
+
+/* ===== DASHBOARD / MY PROFILE ===== */
+.profile-banner {
+  background: linear-gradient(135deg, var(--brand-deeper), var(--brand-dark));
+  padding: 2.5rem 2rem 4rem; color: #fff;
+}
+.profile-info { display: flex; align-items: center; gap: 1.25rem; }
+.profile-avatar-lg {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(255,255,255,0.2); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 700; border: 3px solid rgba(255,255,255,0.4);
+}
+.profile-avatar-lg img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.profile-name { font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 2px; }
+.profile-email { font-size: 13px; opacity: 0.75; }
+.profile-body { max-width: 900px; margin: -2rem auto 0; padding: 0 1.5rem 2rem; position: relative; }
+.profile-stats-bar {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1px; background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+  background-color: var(--bg); margin-bottom: 1.5rem;
+  box-shadow: var(--shadow);
+}
+.profile-stat-cell {
+  background: var(--bg); padding: 1rem; text-align: center;
+}
+.profile-stat-num { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--brand-dark); }
+.profile-stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.my-skills-section { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; }
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.section-head h3 { font-size: 15px; font-weight: 600; }
+.my-skill-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px; border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 8px; transition: border-color 0.15s;
+}
+.my-skill-item:hover { border-color: var(--border2); }
+.my-skill-main { display: flex; align-items: center; gap: 10px; }
+.my-skill-icon {
+  width: 36px; height: 36px; border-radius: var(--radius);
+  background: var(--brand-light); color: var(--brand-dark);
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.my-skill-name { font-size: 14px; font-weight: 500; }
+.my-skill-want { font-size: 12px; color: var(--text2); }
+.my-skill-actions { display: flex; gap: 6px; }
+.icon-btn {
+  width: 30px; height: 30px; border-radius: var(--radius);
+  border: 1px solid var(--border2); background: transparent;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: var(--text2); transition: all 0.15s;
+}
+.icon-btn:hover { background: var(--bg2); color: var(--text); }
+.icon-btn.danger:hover { background: var(--accent-light); color: var(--accent-dark); border-color: var(--accent); }
+.empty-state {
+  text-align: center; padding: 3rem 2rem;
+  color: var(--text3); font-size: 14px;
+}
+.empty-state i { font-size: 3rem; display: block; margin-bottom: 1rem; color: var(--border2); }
+
+/* ===== MATCHES PAGE ===== */
+.match-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1.25rem;
+  display: flex; gap: 1rem; align-items: flex-start;
+  transition: box-shadow 0.2s; margin-bottom: 12px;
+}
+.match-card:hover { box-shadow: var(--shadow); }
+.match-score {
+  flex-shrink: 0; width: 48px; height: 48px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  background: var(--brand-light); color: var(--brand-dark);
+}
+.match-score.great { background: var(--brand-light); color: var(--brand-dark); }
+.match-score.good { background: #FAEEDA; color: #633806; }
+.match-info { flex: 1; }
+.match-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.match-why { font-size: 13px; color: var(--text2); margin-bottom: 8px; }
+.match-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .navbar { padding: 0 1rem; }
+  .nav-links { display: none; }
+  .form-row { grid-template-columns: 1fr; }
+  .hero { padding: 2.5rem 1rem 3rem; }
+  .hero h1 { font-size: 1.8rem; }
+  .hero-stats { gap: 1.25rem; }
+  .cards-grid { grid-template-columns: 1fr; }
+  .profile-stats-bar { grid-template-columns: 1fr 1fr; }
+  .steps-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== LOADER ===== -->
+<div id="app-loader">
+  <div class="logo-big">Skill<span>Swap</span></div>
+  <div style="font-size:13px;color:#888;margin-top:6px">Exchange skills, not money</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<!-- ===== AUTH SCREEN ===== -->
+<div id="auth-screen" style="display:none">
+  <div class="auth-card">
+    <div class="auth-logo">Skill<span>Swap</span></div>
+    <p class="auth-tagline">Join 1,200+ professionals exchanging skills for free. Teach what you know, learn what you need.</p>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg class="google-icon" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Continue with Google
+    </button>
+    <div class="auth-divider"><span>or</span></div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="guestMode()">
+      <i class="ti ti-eye"></i> Browse as Guest
+    </button>
+    <div class="feature-pills">
+      <span class="feature-pill">✦ 100% Free</span>
+      <span class="feature-pill">✦ Peer-to-peer</span>
+      <span class="feature-pill">✦ No intermediary</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="app">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a class="nav-logo" href="#" onclick="navigate('home')">Skill<span>Swap</span></a>
+    <div class="nav-links">
+      <button class="nav-link active" id="nav-home" onclick="navigate('home')">Home</button>
+      <button class="nav-link" id="nav-browse" onclick="navigate('browse')">Browse Skills</button>
+      <button class="nav-link" id="nav-matches" onclick="navigate('matches')">My Matches</button>
+      <button class="nav-link" id="nav-how" onclick="navigate('how')">How it Works</button>
+    </div>
+    <div class="nav-right">
+      <button class="btn btn-primary btn-sm" onclick="navigate('post')" id="post-btn">
+        <i class="ti ti-plus"></i> Post Skill
+      </button>
+      <div class="nav-avatar" id="nav-avatar-wrap" onclick="toggleDropdown()">
+        <span id="nav-avatar-text">?</span>
+        <div class="dropdown" id="user-dropdown">
+          <div class="dropdown-item" onclick="navigate('profile')">
+            <i class="ti ti-user"></i> My Profile
+          </div>
+          <div class="dropdown-item" onclick="navigate('post')">
+            <i class="ti ti-plus"></i> Post a Skill
+          </div>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-item danger" onclick="signOut()">
+            <i class="ti ti-logout"></i> Sign out
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== HOME PAGE ===== -->
+  <div class="page active" id="page-home">
+    <div class="hero">
+      <div class="hero-content">
+        <div class="hero-badge"><i class="ti ti-sparkles"></i> 100% Free · Peer-to-peer skill exchange</div>
+        <h1>Exchange skills,<br>not <em>money</em></h1>
+        <p>Teach what you know. Learn what you need. Connect with professionals and swap skills — no fees, no friction.</p>
+        <div class="hero-actions">
+          <button class="btn btn-lg" style="background:#fff;color:var(--brand-dark)" onclick="navigate('browse')">
+            <i class="ti ti-search"></i> Browse Skills
+          </button>
+          <button class="btn btn-lg btn-outline" style="border-color:rgba(255,255,255,0.5);color:#fff" onclick="navigate('post')">
+            <i class="ti ti-plus"></i> Post Your Skill
+          </button>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><span class="hero-stat-num" id="stat-users">1.2k</span><span class="hero-stat-label">Professionals</span></div>
+          <div class="hero-stat"><span class="hero-stat-num" id="stat-swaps">340</span><span class="hero-stat-label">Active Swaps</span></div>
+          <div class="hero-stat"><span class="hero-stat-num">48</span><span class="hero-stat-label">Skill Categories</span></div>
+          <div class="hero-stat"><span class="hero-stat-num">4.9★</span><span class="hero-stat-label">Avg. Rating</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Featured Skills -->
+    <div class="page-container">
+      <div class="page-header">
+        <h2 class="page-title">Featured skill exchanges</h2>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('browse')">See all <i class="ti ti-arrow-right"></i></button>
+      </div>
+      <div class="cards-grid" id="home-cards-grid"></div>
+    </div>
+
+    <!-- CTA Banner -->
+    <div style="background:var(--brand-light);border-top:1px solid var(--brand-mid);padding:3rem 2rem;text-align:center;margin-top:2rem">
+      <h2 style="font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--brand-dark);margin-bottom:.75rem">Ready to start swapping?</h2>
+      <p style="font-size:14px;color:var(--brand-deeper);margin-bottom:1.5rem;max-width:480px;margin-left:auto;margin-right:auto">Post your skill in under 2 minutes and get matched with professionals who need exactly what you offer.</p>
+      <button class="btn btn-primary btn-lg" onclick="navigate('post')"><i class="ti ti-plus"></i> Post Your Skill</button>
+    </div>
+  </div>
+
+  <!-- ===== BROWSE PAGE ===== -->
+  <div class="page" id="page-browse">
+    <div class="page-container">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Browse all skills</h2>
+          <p style="font-size:13px;color:var(--text2);margin-top:4px" id="browse-count">Loading...</p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="navigate('post')"><i class="ti ti-plus"></i> Post Skill</button>
+      </div>
+      <div class="search-bar">
+        <input class="search-input" type="text" placeholder="Search by skill, name, or city..." id="search-input" oninput="filterCards()">
+      </div>
+      <div class="filters" id="category-filters"></div>
+      <div class="cards-grid" id="browse-cards-grid"></div>
+      <div id="no-results" style="display:none" class="empty-state">
+        <i class="ti ti-search-off"></i>
+        No results found. Try a different search or category.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== POST SKILL PAGE ===== -->
+  <div class="page" id="page-post">
+    <div class="page-container">
+      <div style="max-width:700px;margin:0 auto">
+        <div style="margin-bottom:1.5rem">
+          <h2 class="page-title">Post your skill</h2>
+          <p style="font-size:13px;color:var(--text2);margin-top:4px">Share what you can teach and what you'd love to learn.</p>
+        </div>
+        <div class="form-card">
+          <div class="form-section-title">Personal info</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Full name *</label>
+              <input type="text" id="p-name" placeholder="Your name">
+            </div>
+            <div class="form-group">
+              <label>Job title / role *</label>
+              <input type="text" id="p-role" placeholder="e.g. Senior Developer">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>City *</label>
+              <input type="text" id="p-city" placeholder="e.g. Bangalore">
+            </div>
+            <div class="form-group">
+              <label>Experience level</label>
+              <select id="p-level">
+                <option value="">Select level</option>
+                <option>Beginner (1-2 yrs)</option>
+                <option>Intermediate (3-5 yrs)</option>
+                <option>Expert (5+ yrs)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-section-title">Your skills</div>
+          <div class="form-group">
+            <label>Skills you can teach * <span class="hint">(press Enter to add)</span></label>
+            <div class="tag-container" id="teach-container" onclick="document.getElementById('teach-input').focus()">
+              <input type="text" id="teach-input" placeholder="e.g. Python, Excel, SEO..." onkeydown="addTag(event,'teach')">
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:12px">
+            <label>Skills you want to learn * <span class="hint">(press Enter to add)</span></label>
+            <div class="tag-container" id="learn-container" onclick="document.getElementById('learn-input').focus()">
+              <input type="text" id="learn-input" placeholder="e.g. Public Speaking, UI Design..." onkeydown="addTag(event,'learn')">
+            </div>
+          </div>
+
+          <div class="form-section-title">About you</div>
+          <div class="form-group">
+            <label>Short bio</label>
+            <textarea id="p-bio" placeholder="Tell people about your background, teaching style, and availability..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Preferred session type</label>
+              <select id="p-session">
+                <option value="">Select preference</option>
+                <option>Video call (Zoom/Meet)</option>
+                <option>In-person only</option>
+                <option>Either works</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Availability</label>
+              <select id="p-avail">
+                <option value="">Select availability</option>
+                <option>Weekdays (daytime)</option>
+                <option>Weekday evenings</option>
+                <option>Weekends only</option>
+                <option>Flexible</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-ghost" onclick="clearPostForm()">Clear</button>
+            <button class="btn btn-primary" onclick="submitSkill()"><i class="ti ti-check"></i> Post Skill</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MY MATCHES PAGE ===== -->
+  <div class="page" id="page-matches">
+    <div class="page-container">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Your matches</h2>
+          <p style="font-size:13px;color:var(--text2);margin-top:4px">People whose skills align with yours.</p>
+        </div>
+      </div>
+      <div id="matches-list"></div>
+    </div>
+  </div>
+
+  <!-- ===== HOW IT WORKS PAGE ===== -->
+  <div class="page" id="page-how">
+    <div class="how-hero">
+      <h2 class="how-title">How SkillSwap works</h2>
+      <p style="color:var(--text2);font-size:14px;max-width:480px;margin:0 auto">A simple, free, trust-based system for exchanging professional skills — no payments needed.</p>
+    </div>
+    <div class="page-container">
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-icon"><i class="ti ti-user-plus"></i></div>
+          <span class="step-num">01</span>
+          <div class="step-title">Create your profile</div>
+          <div class="step-desc">Sign in with Google. Tell us what you can teach and what you'd love to learn. Takes less than 2 minutes.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon"><i class="ti ti-bulb"></i></div>
+          <span class="step-num">02</span>
+          <div class="step-title">Post your skill</div>
+          <div class="step-desc">Share your expertise — development, design, marketing, finance, languages, and more. Any skill counts.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon"><i class="ti ti-arrows-exchange"></i></div>
+          <span class="step-num">03</span>
+          <div class="step-title">Get matched</div>
+          <div class="step-desc">Our algorithm finds people whose skills match your wants — and who want to learn from you in return.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon"><i class="ti ti-calendar"></i></div>
+          <span class="step-num">04</span>
+          <div class="step-title">Schedule & swap</div>
+          <div class="step-desc">Connect, agree on a format (video/in-person), and start your skill exchange. Both parties grow together.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon"><i class="ti ti-star"></i></div>
+          <span class="step-num">05</span>
+          <div class="step-title">Rate & grow</div>
+          <div class="step-desc">After each swap, leave a rating. Build your reputation and unlock more high-quality matches over time.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:2.5rem">
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.25rem;margin-bottom:1rem;color:var(--brand-dark)">Frequently asked questions</h3>
+        <div class="faq-section" style="margin:0">
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q">Is SkillSwap completely free? <i class="ti ti-chevron-down"></i></div>
+            <div class="faq-a">Yes! SkillSwap is 100% free. No subscription, no hidden fees, no commission. Value is exchanged between users directly, not through us.</div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q">What kinds of skills can I swap? <i class="ti ti-chevron-down"></i></div>
+            <div class="faq-a">Any professional skill — coding, design, writing, marketing, finance, languages, public speaking, Excel, photography, and much more. If it's valuable to someone, list it.</div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q">How do I know the other person is reliable? <i class="ti ti-chevron-down"></i></div>
+            <div class="faq-a">Every user is authenticated via Google. After each swap, both parties can rate each other. High ratings build credibility over time.</div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q">Do swaps have to be 1-for-1? <i class="ti ti-chevron-down"></i></div>
+            <div class="faq-a">Not necessarily. Some people do symmetric swaps (you teach me Python, I teach you SEO). Others do async swaps — give a session now, receive one later.</div>
+          </div>
+          <div class="faq-item" onclick="toggleFaq(this)">
+            <div class="faq-q">Can I list multiple skills? <i class="ti ti-chevron-down"></i></div>
+            <div class="faq-a">Absolutely. You can list as many skills as you want to teach and as many you want to learn. More skills = more matches.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MY PROFILE PAGE ===== -->
+  <div class="page" id="page-profile">
+    <div class="profile-banner">
+      <div class="page-container" style="padding-top:0;padding-bottom:0">
+        <div class="profile-info">
+          <div class="profile-avatar-lg" id="profile-avatar-lg">
+            <span id="profile-initials">?</span>
+          </div>
+          <div>
+            <div class="profile-name" id="profile-name-display">Your Name</div>
+            <div class="profile-email" id="profile-email-display">your@email.com</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="profile-body">
+      <div class="profile-stats-bar">
+        <div class="profile-stat-cell">
+          <div class="profile-stat-num" id="ps-skills">0</div>
+          <div class="profile-stat-label">Skills posted</div>
+        </div>
+        <div class="profile-stat-cell">
+          <div class="profile-stat-num" id="ps-matches">0</div>
+          <div class="profile-stat-label">Matches</div>
+        </div>
+        <div class="profile-stat-cell">
+          <div class="profile-stat-num" id="ps-swaps">0</div>
+          <div class="profile-stat-label">Swaps done</div>
+        </div>
+        <div class="profile-stat-cell">
+          <div class="profile-stat-num" id="ps-rating">—</div>
+          <div class="profile-stat-label">Avg. rating</div>
+        </div>
+      </div>
+      <div class="my-skills-section">
+        <div class="section-head">
+          <h3>My skill listings</h3>
+          <button class="btn btn-primary btn-sm" onclick="navigate('post')"><i class="ti ti-plus"></i> Add skill</button>
+        </div>
+        <div id="my-skills-list">
+          <div class="empty-state">
+            <i class="ti ti-bulb-off"></i>
+            You haven't posted any skills yet.<br>
+            <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="navigate('post')">Post your first skill</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== SKILL DETAIL MODAL ===== -->
+<div class="modal-overlay" id="skill-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('skill-modal').classList.remove('open')">
+      <i class="ti ti-x"></i>
+    </button>
+    <div class="modal-profile-head">
+      <div class="modal-avatar" id="m-avatar">?</div>
+      <div>
+        <div class="modal-name" id="m-name">Name</div>
+        <div class="modal-role" id="m-role">Role · City</div>
+      </div>
+    </div>
+    <div class="modal-section">
+      <h4>Skills offering</h4>
+      <div class="skill-tags" id="m-teach"></div>
+    </div>
+    <div class="modal-section">
+      <h4>Wants to learn</h4>
+      <div class="skill-tags" id="m-learn"></div>
+    </div>
+    <div class="modal-section" id="m-bio-section">
+      <h4>About</h4>
+      <div class="modal-bio" id="m-bio"></div>
+    </div>
+    <div class="modal-section">
+      <h4>Details</h4>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="m-details"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="requestSwap()"><i class="ti ti-arrows-exchange"></i> Request Swap</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('skill-modal').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOAST CONTAINER ===== -->
+<div id="toast-container"></div>
+
+<!-- ===== FIREBASE SDK ===== -->
+<script type="module">
+// ================================================================
+// FIREBASE CONFIG — Replace with your own from Firebase Console
+// ================================================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, doc, deleteDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ⚠️ REPLACE THIS WITH YOUR FIREBASE CONFIG ⚠️
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+// ================================================================
+// DEMO DATA — Used when Firebase is not configured
+// ================================================================
+const DEMO_SKILLS = [
+  { id:'d1', name:'Rahul Kapoor', role:'Senior Developer', city:'Pune', level:'Expert (5+ yrs)',
+    teach:['Python','Django','REST APIs'], learn:['UI/UX Design','Figma'],
+    bio:'8 years building web apps. Love teaching backend development. Available weekday evenings.',
+    session:'Video call (Zoom/Meet)', availability:'Weekday evenings', rating:4.9, swaps:12,
+    color:'#9FE1CB', textColor:'#085041' },
+  { id:'d2', name:'Priya Sharma', role:'Marketing Lead', city:'Mumbai', level:'Expert (5+ yrs)',
+    teach:['Content Strategy','SEO','Copywriting'], learn:['Excel','Data Analysis','SQL'],
+    bio:'Marketing professional with 6 years experience. Love helping people tell better stories.',
+    session:'Either works', availability:'Weekends only', rating:4.7, swaps:8,
+    color:'#F5C4B3', textColor:'#712B13' },
+  { id:'d3', name:'Arjun Mehta', role:'Finance Analyst', city:'Delhi', level:'Intermediate (3-5 yrs)',
+    teach:['Financial Modelling','Excel','Valuation'], learn:['Public Speaking','Presentation Design'],
+    bio:'CFA level 2 candidate. Can teach financial modelling and Excel dashboards from scratch.',
+    session:'Video call (Zoom/Meet)', availability:'Flexible', rating:4.8, swaps:5,
+    color:'#CECBF6', textColor:'#3C3489' },
+  { id:'d4', name:'Neha Joshi', role:'UX Designer', city:'Bangalore', level:'Expert (5+ yrs)',
+    teach:['Figma','User Research','Prototyping'], learn:['Python basics','Automating tasks'],
+    bio:'Senior UX designer at a fintech startup. Passionate about accessible, beautiful design.',
+    session:'Video call (Zoom/Meet)', availability:'Weekday evenings', rating:5.0, swaps:18,
+    color:'#B5D4F4', textColor:'#0C447C' },
+  { id:'d5', name:'Karthik Nair', role:'Product Manager', city:'Hyderabad', level:'Expert (5+ yrs)',
+    teach:['Product Strategy','Roadmapping','User Stories'], learn:['No-code tools','Webflow'],
+    bio:'PM with 7 years experience across consumer and B2B products. Happy to mentor aspiring PMs.',
+    session:'Either works', availability:'Weekends only', rating:4.6, swaps:9,
+    color:'#C0DD97', textColor:'#27500A' },
+  { id:'d6', name:'Shreya Patel', role:'Data Scientist', city:'Ahmedabad', level:'Intermediate (3-5 yrs)',
+    teach:['Machine Learning','Pandas','Data Viz'], learn:['Communication skills','Storytelling with data'],
+    bio:'Working on NLP projects. Can teach ML basics and practical data science with Python.',
+    session:'Video call (Zoom/Meet)', availability:'Weekday evenings', rating:4.9, swaps:7,
+    color:'#FAC775', textColor:'#633806' },
+];
+
+const COLORS = [
+  {bg:'#9FE1CB',text:'#085041'},{bg:'#F5C4B3',text:'#712B13'},
+  {bg:'#CECBF6',text:'#3C3489'},{bg:'#B5D4F4',text:'#0C447C'},
+  {bg:'#C0DD97',text:'#27500A'},{bg:'#FAC775',text:'#633806'},
+];
+const CATEGORIES = ['All','Development','Design','Marketing','Finance','Data','Product','Others'];
+
+// ================================================================
+// STATE
+// ================================================================
+let app, auth, db, provider;
+let currentUser = null;
+let isGuest = false;
+let allSkills = [...DEMO_SKILLS];
+let mySkills = [];
+let activeFilter = 'All';
+let firebaseReady = false;
+
+// ================================================================
+// INIT FIREBASE
+// ================================================================
+function initFirebase() {
+  if (firebaseConfig.apiKey === 'YOUR_API_KEY') {
+    console.warn('⚠️ Firebase not configured. Running in demo mode.');
+    return;
+  }
+  try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    provider = new GoogleAuthProvider();
+    firebaseReady = true;
+
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUser = user;
+        launchApp();
+        loadSkillsFromFirebase();
+      } else if (!isGuest) {
+        showAuthScreen();
+      }
+    });
+  } catch(e) {
+    console.error('Firebase init error:', e);
+  }
+}
+
+// ================================================================
+// AUTH
+// ================================================================
+window.signInWithGoogle = async () => {
+  if (!firebaseReady) {
+    guestMode();
+    return;
+  }
+  try {
+    const result = await signInWithPopup(auth, provider);
+    currentUser = result.user;
+    launchApp();
+    await loadSkillsFromFirebase();
+  } catch(e) {
+    showToast('Sign-in failed. Please try again.', 'error');
+  }
+};
+
+window.guestMode = () => {
+  isGuest = true;
+  currentUser = { displayName: 'Guest User', email: 'guest@demo.com', uid: 'guest' };
+  launchApp();
+};
+
+window.signOut = async () => {
+  if (firebaseReady && auth) await fbSignOut(auth);
+  currentUser = null;
+  isGuest = true;
+  document.getElementById('user-dropdown').classList.remove('open');
+  showAuthScreen();
+};
+
+// ================================================================
+// FIRESTORE
+// ================================================================
+async function loadSkillsFromFirebase() {
+  if (!firebaseReady || !db) return;
+  try {
+    const q = query(collection(db, 'skills'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    const fbSkills = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (fbSkills.length > 0) {
+      allSkills = [...fbSkills, ...DEMO_SKILLS];
+    }
+    renderAllCards();
+    renderHomeCards();
+    renderMatches();
+  } catch(e) {
+    console.log('Firestore error:', e);
+  }
+}
+
+async function saveSkillToFirebase(skillData) {
+  if (!firebaseReady || !db) return null;
+  const docRef = await addDoc(collection(db, 'skills'), {
+    ...skillData, createdAt: serverTimestamp()
+  });
+  return docRef.id;
+}
+
+async function deleteSkillFromFirebase(id) {
+  if (!firebaseReady || !db) return;
+  await deleteDoc(doc(db, 'skills', id));
+}
+
+// ================================================================
+// UI INIT
+// ================================================================
+function showAuthScreen() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function launchApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  updateNavUser();
+  renderAllCards();
+  renderHomeCards();
+  renderMatches();
+  loadMySkills();
+  renderCategoryFilters();
+}
+
+function updateNavUser() {
+  const initials = currentUser?.displayName
+    ? currentUser.displayName.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)
+    : 'G';
+  document.getElementById('nav-avatar-text').textContent = initials;
+  document.getElementById('profile-initials').textContent = initials;
+  document.getElementById('profile-name-display').textContent = currentUser?.displayName || 'Guest';
+  document.getElementById('profile-email-display').textContent = currentUser?.email || '';
+  if (isGuest) {
+    document.getElementById('post-btn').style.display = 'none';
+  }
+}
+
+// ================================================================
+// NAVIGATION
+// ================================================================
+window.navigate = (page) => {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  const navEl = document.getElementById('nav-' + page);
+  if (navEl) navEl.classList.add('active');
+  document.getElementById('user-dropdown').classList.remove('open');
+  window.scrollTo(0,0);
+  if (page === 'profile') loadMySkills();
+  if (page === 'matches') renderMatches();
+  if (page === 'browse') renderAllCards();
+};
+
+// ================================================================
+// RENDER CARDS
+// ================================================================
+function makeCard(skill, showDelete = false) {
+  const c = skill.color ? { bg: skill.color, text: skill.textColor } : COLORS[Math.floor(Math.random()*COLORS.length)];
+  const teachTags = (skill.teach || []).map(t => `<span class="skill-tag highlight">${t}</span>`).join('');
+  const learnTags = (skill.learn || []).map(t => `<span class="skill-tag">${t}</span>`).join('');
+  const stars = '★'.repeat(Math.round(skill.rating || 5));
+  const deleteBtn = showDelete
+    ? `<button class="icon-btn danger" title="Delete" onclick="event.stopPropagation();deleteMySkill('${skill.id}')"><i class="ti ti-trash"></i></button>` : '';
+
+  return `
+    <div class="skill-card" onclick="openModal(${JSON.stringify(skill).replace(/"/g,"&quot;")})">
+      <div class="card-head">
+        <div class="avatar" style="background:${c.bg};color:${c.text}">
+          ${skill.name ? skill.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2) : '?'}
+        </div>
+        <div class="card-info">
+          <div class="card-name">${skill.name || 'Anonymous'}</div>
+          <div class="card-role">${skill.role || ''}</div>
+          <div class="card-location"><i class="ti ti-map-pin" style="font-size:11px"></i> ${skill.city || ''}</div>
+        </div>
+        <div>${deleteBtn}</div>
+      </div>
+      <div class="card-skill-section">
+        <div class="skill-label">Offering</div>
+        <div class="skill-tags">${teachTags}</div>
+      </div>
+      <div class="card-skill-section">
+        <div class="skill-label">Wants to learn</div>
+        <div class="skill-tags">${learnTags}</div>
+      </div>
+      <div class="card-footer">
+        <div class="card-rating">
+          <span class="star" style="font-size:13px">★</span>
+          <span>${skill.rating || '5.0'}</span>
+          <span class="card-swaps">${skill.swaps || 0} swaps</span>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();requestSwapForCard(${JSON.stringify(skill).replace(/"/g,"&quot;")})">
+            <i class="ti ti-arrows-exchange"></i> Swap
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderHomeCards() {
+  const grid = document.getElementById('home-cards-grid');
+  const featured = allSkills.slice(0, 6);
+  grid.innerHTML = featured.map(s => makeCard(s)).join('');
+  document.getElementById('stat-users').textContent = (1200 + allSkills.length - DEMO_SKILLS.length).toLocaleString();
+  document.getElementById('stat-swaps').textContent = allSkills.reduce((a,s) => a + (s.swaps||0), 0);
+}
+
+function renderAllCards() {
+  const grid = document.getElementById('browse-cards-grid');
+  const search = (document.getElementById('search-input')?.value || '').toLowerCase();
+  let filtered = allSkills.filter(s => {
+    const matchSearch = !search ||
+      (s.name||'').toLowerCase().includes(search) ||
+      (s.teach||[]).some(t => t.toLowerCase().includes(search)) ||
+      (s.learn||[]).some(t => t.toLowerCase().includes(search)) ||
+      (s.city||'').toLowerCase().includes(search);
+    const matchCat = activeFilter === 'All' || categoryMatch(s, activeFilter);
+    return matchSearch && matchCat;
+  });
+  document.getElementById('browse-count').textContent = `${filtered.length} skill${filtered.length !== 1 ? 's' : ''} available`;
+  document.getElementById('no-results').style.display = filtered.length ? 'none' : 'block';
+  grid.innerHTML = filtered.map(s => makeCard(s)).join('');
+}
+
+function categoryMatch(skill, cat) {
+  const map = {
+    'Development': ['python','javascript','react','django','node','java','code','dev','api','sql'],
+    'Design': ['figma','ui','ux','design','photoshop','illustrator','prototype'],
+    'Marketing': ['seo','marketing','content','copywriting','social media','email'],
+    'Finance': ['excel','finance','financial','accounting','modelling','investment'],
+    'Data': ['data','machine learning','ml','analytics','tableau','power bi','pandas'],
+    'Product': ['product','roadmap','agile','scrum','strategy'],
+  };
+  const keywords = map[cat] || [];
+  const allText = [...(skill.teach||[]), ...(skill.learn||[])].join(' ').toLowerCase();
+  return keywords.some(k => allText.includes(k));
+}
+
+window.filterCards = () => renderAllCards();
+
+function renderCategoryFilters() {
+  const el = document.getElementById('category-filters');
+  el.innerHTML = CATEGORIES.map(c =>
+    `<button class="filter-btn ${c === activeFilter ? 'active' : ''}"
+      onclick="setFilter('${c}')">${c}</button>`
+  ).join('');
+}
+
+window.setFilter = (cat) => {
+  activeFilter = cat;
+  renderCategoryFilters();
+  renderAllCards();
+};
+
+// ================================================================
+// MY SKILLS / PROFILE
+// ================================================================
+function loadMySkills() {
+  mySkills = allSkills.filter(s => s.uid === currentUser?.uid);
+  document.getElementById('ps-skills').textContent = mySkills.length;
+  document.getElementById('ps-matches').textContent = computeMatches().length;
+  const list = document.getElementById('my-skills-list');
+  if (mySkills.length === 0) {
+    list.innerHTML = `<div class="empty-state">
+      <i class="ti ti-bulb-off"></i>
+      No skills posted yet.<br>
+      <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="navigate('post')">Post your first skill</button>
+    </div>`;
+    return;
+  }
+  list.innerHTML = mySkills.map(s => `
+    <div class="my-skill-item">
+      <div class="my-skill-main">
+        <div class="my-skill-icon"><i class="ti ti-bulb"></i></div>
+        <div>
+          <div class="my-skill-name">${(s.teach||[]).join(', ')}</div>
+          <div class="my-skill-want">Wants: ${(s.learn||[]).join(', ')}</div>
+        </div>
+      </div>
+      <div class="my-skill-actions">
+        <button class="icon-btn danger" title="Delete" onclick="deleteMySkill('${s.id}')">
+          <i class="ti ti-trash"></i>
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+window.deleteMySkill = async (id) => {
+  if (!confirm('Delete this skill listing?')) return;
+  allSkills = allSkills.filter(s => s.id !== id);
+  await deleteSkillFromFirebase(id);
+  loadMySkills();
+  renderAllCards();
+  renderHomeCards();
+  showToast('Skill deleted.');
+};
+
+// ================================================================
+// MATCHES
+// ================================================================
+function computeMatches() {
+  if (!currentUser || isGuest) return [];
+  const mine = allSkills.filter(s => s.uid === currentUser.uid);
+  if (mine.length === 0) return [];
+  const myTeach = mine.flatMap(s => (s.teach||[]).map(t => t.toLowerCase()));
+  const myLearn = mine.flatMap(s => (s.learn||[]).map(t => t.toLowerCase()));
+  return allSkills
+    .filter(s => s.uid !== currentUser.uid)
+    .map(s => {
+      const theirTeach = (s.teach||[]).map(t => t.toLowerCase());
+      const theirLearn = (s.learn||[]).map(t => t.toLowerCase());
+      const iCanTeachThem = myTeach.filter(t => theirLearn.some(l => l.includes(t) || t.includes(l)));
+      const theyCanTeachMe = theirTeach.filter(t => myLearn.some(l => l.includes(t) || t.includes(l)));
+      const score = iCanTeachThem.length + theyCanTeachMe.length;
+      return { ...s, score, iCanTeachThem, theyCanTeachMe };
+    })
+    .filter(s => s.score > 0)
+    .sort((a,b) => b.score - a.score);
+}
+
+function renderMatches() {
+  const el = document.getElementById('matches-list');
+  if (isGuest) {
+    el.innerHTML = `<div class="empty-state"><i class="ti ti-lock"></i>Sign in and post a skill to see your matches.</div>`;
+    return;
+  }
+  const matches = computeMatches();
+  document.getElementById('ps-matches').textContent = matches.length;
+  if (matches.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <i class="ti ti-arrows-exchange"></i>
+      Post a skill first to see who matches with you.
+      <br><button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="navigate('post')">Post a skill</button>
+    </div>`;
+    return;
+  }
+  el.innerHTML = matches.map(m => {
+    const c = m.color ? {bg:m.color,text:m.textColor} : COLORS[0];
+    const pct = Math.min(100, Math.round(m.score * 20));
+    const scoreLabel = pct >= 60 ? 'Great match' : 'Good match';
+    return `
+    <div class="match-card" onclick="openModal(${JSON.stringify(m).replace(/"/g,'&quot;')})">
+      <div class="match-score ${pct >= 60 ? 'great' : 'good'}">${pct}%</div>
+      <div class="match-info">
+        <div class="match-name">${m.name} — ${m.role}, ${m.city}</div>
+        <div class="match-why">
+          ${m.theyCanTeachMe.length ? `Can teach you: <b>${m.theyCanTeachMe.join(', ')}</b>` : ''}
+          ${m.theyCanTeachMe.length && m.iCanTeachThem.length ? ' · ' : ''}
+          ${m.iCanTeachThem.length ? `You can teach: <b>${m.iCanTeachThem.join(', ')}</b>` : ''}
+        </div>
+        <div class="match-tags">
+          <span class="badge badge-offer">${scoreLabel}</span>
+          <span class="badge" style="background:var(--bg2);color:var(--text2)">${m.score} overlapping skill${m.score>1?'s':''}</span>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();requestSwapForCard(${JSON.stringify(m).replace(/"/g,'&quot;')})">
+        <i class="ti ti-arrows-exchange"></i> Request swap
+      </button>
+    </div>`;
+  }).join('');
+}
+
+// ================================================================
+// MODAL
+// ================================================================
+let activeModalSkill = null;
+window.openModal = (skill) => {
+  if (typeof skill === 'string') skill = JSON.parse(skill);
+  activeModalSkill = skill;
+  const c = skill.color ? {bg:skill.color,text:skill.textColor} : COLORS[0];
+  const initials = (skill.name||'?').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('m-avatar').style.background = c.bg;
+  document.getElementById('m-avatar').style.color = c.text;
+  document.getElementById('m-avatar').textContent = initials;
+  document.getElementById('m-name').textContent = skill.name || 'Anonymous';
+  document.getElementById('m-role').textContent = [skill.role, skill.city].filter(Boolean).join(' · ');
+  document.getElementById('m-teach').innerHTML = (skill.teach||[]).map(t=>`<span class="skill-tag highlight">${t}</span>`).join('');
+  document.getElementById('m-learn').innerHTML = (skill.learn||[]).map(t=>`<span class="skill-tag">${t}</span>`).join('');
+  const bioSec = document.getElementById('m-bio-section');
+  if (skill.bio) { bioSec.style.display='block'; document.getElementById('m-bio').textContent = skill.bio; }
+  else bioSec.style.display = 'none';
+  const details = [
+    skill.level && `<span class="badge badge-new">${skill.level}</span>`,
+    skill.session && `<span class="badge" style="background:var(--bg2);color:var(--text2)">${skill.session}</span>`,
+    skill.availability && `<span class="badge" style="background:var(--accent-light);color:var(--accent-dark)">${skill.availability}</span>`,
+  ].filter(Boolean).join('');
+  document.getElementById('m-details').innerHTML = details;
+  document.getElementById('skill-modal').classList.add('open');
+};
+
+window.closeModal = (e) => {
+  if (e.target === document.getElementById('skill-modal'))
+    document.getElementById('skill-modal').classList.remove('open');
+};
+
+window.requestSwap = () => {
+  document.getElementById('skill-modal').classList.remove('open');
+  requestSwapForCard(activeModalSkill);
+};
+
+window.requestSwapForCard = (skill) => {
+  if (isGuest) { showToast('Sign in to request a swap!', 'error'); return; }
+  if (skill.uid === currentUser?.uid) { showToast('This is your own listing!', 'error'); return; }
+  showToast(`Swap request sent to ${skill.name}! 🎉`);
+};
+
+// ================================================================
+// POST SKILL FORM
+// ================================================================
+const tagState = { teach: [], learn: [] };
+
+window.addTag = (event, type) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  const input = document.getElementById(type + '-input');
+  const val = input.value.trim();
+  if (!val || tagState[type].includes(val)) { input.value=''; return; }
+  tagState[type].push(val);
+  input.value = '';
+  renderTags(type);
+};
+
+function renderTags(type) {
+  const container = document.getElementById(type + '-container');
+  const input = document.getElementById(type + '-input');
+  container.querySelectorAll('.tag-pill').forEach(el => el.remove());
+  tagState[type].forEach(tag => {
+    const pill = document.createElement('span');
+    pill.className = 'tag-pill';
+    pill.innerHTML = `${tag}<button onclick="removeTag('${tag}','${type}')" type="button">×</button>`;
+    container.insertBefore(pill, input);
+  });
+}
+
+window.removeTag = (tag, type) => {
+  tagState[type] = tagState[type].filter(t => t !== tag);
+  renderTags(type);
+};
+
+window.clearPostForm = () => {
+  ['p-name','p-role','p-city','p-bio'].forEach(id => document.getElementById(id).value = '');
+  ['p-level','p-session','p-avail'].forEach(id => document.getElementById(id).selectedIndex = 0);
+  tagState.teach = []; tagState.learn = [];
+  renderTags('teach'); renderTags('learn');
+};
+
+window.submitSkill = async () => {
+  if (isGuest) { showToast('Sign in to post a skill!', 'error'); return; }
+  const name = document.getElementById('p-name').value.trim();
+  const role = document.getElementById('p-role').value.trim();
+  const city = document.getElementById('p-city').value.trim();
+  if (!name || !role || !city) { showToast('Please fill in name, role and city.', 'error'); return; }
+  if (tagState.teach.length === 0) { showToast('Add at least one skill you can teach.', 'error'); return; }
+  if (tagState.learn.length === 0) { showToast('Add at least one skill you want to learn.', 'error'); return; }
+
+  const c = COLORS[Math.floor(Math.random() * COLORS.length)];
+  const skillData = {
+    uid: currentUser.uid,
+    name, role, city,
+    level: document.getElementById('p-level').value,
+    teach: [...tagState.teach],
+    learn: [...tagState.learn],
+    bio: document.getElementById('p-bio').value.trim(),
+    session: document.getElementById('p-session').value,
+    availability: document.getElementById('p-avail').value,
+    rating: 5.0, swaps: 0,
+    color: c.bg, textColor: c.text,
+  };
+
+  let id;
+  try {
+    id = await saveSkillToFirebase(skillData);
+  } catch(e) {}
+  id = id || 'local-' + Date.now();
+
+  allSkills = [{ id, ...skillData }, ...allSkills];
+  clearPostForm();
+  showToast('Skill posted! 🎉 You can now be matched.');
+  navigate('browse');
+  renderAllCards();
+  renderHomeCards();
+};
+
+// ================================================================
+// UTILS
+// ================================================================
+window.toggleDropdown = () => {
+  document.getElementById('user-dropdown').classList.toggle('open');
+};
+
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('nav-avatar-wrap').contains(e.target))
+    document.getElementById('user-dropdown').classList.remove('open');
+});
+
+window.toggleFaq = (el) => el.classList.toggle('open');
+
+function showToast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = `toast${type === 'error' ? ' error' : ''}`;
+  t.innerHTML = `<i class="ti ti-${type==='error'?'alert-circle':'circle-check'}"></i> ${msg}`;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+window.showToast = showToast;
+
+// ================================================================
+// BOOT
+// ================================================================
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    document.getElementById('app-loader').style.opacity = '0';
+    setTimeout(() => {
+      document.getElementById('app-loader').style.display = 'none';
+      initFirebase();
+      if (!firebaseReady || firebaseConfig.apiKey === 'YOUR_API_KEY') {
+        showAuthScreen();
+      }
+    }, 400);
+  }, 1800);
+});
+</script>
+</body>
+</html>
